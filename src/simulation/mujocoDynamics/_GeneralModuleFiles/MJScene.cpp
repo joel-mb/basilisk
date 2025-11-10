@@ -32,6 +32,7 @@
 #include <stdexcept>
 #include <vector>
 #include <cmath>
+#include <nvtx3/nvtx3.hpp>
 
 MJScene::MJScene(std::string xml, const std::vector<std::string>& files)
     : spec(*this, xml, files)
@@ -76,6 +77,9 @@ void MJScene::Reset(uint64_t CurrentSimNanos)
 
 void MJScene::initializeDynamics()
 {
+    // NVTX3_FUNC_RANGE();
+    nvtx3::scoped_range f{"MJScene::initializeDynamics"};
+
     // We need to use a special StateData type for qpos
     // since it is integrated using a mujoco function
     this->qposState = this->dynManager.registerState<MJQPosStateData>(1, 1, "mujocoQpos");
@@ -114,6 +118,8 @@ void MJScene::initializeDynamics()
 
 void MJScene::UpdateState(uint64_t CurrentSimNanos)
 {
+    // NVTX3_FUNC_RANGE();
+    nvtx3::scoped_range f{"MJScene::UpdateState"};
     this->integrateState(CurrentSimNanos);
     this->writeOutputStateMessages(CurrentSimNanos);
     for (auto&& body : this->spec.getBodies()) {
@@ -123,6 +129,8 @@ void MJScene::UpdateState(uint64_t CurrentSimNanos)
 
 void MJScene::equationsOfMotion(double t, double timeStep)
 {
+    // NVTX3_FUNC_RANGE();
+    nvtx3::scoped_range f{"MJScene::equationsOfMotion"};
     auto nanos = static_cast<uint64_t>(t * SEC2NANO);
 
     // Make sure the model is compiled
@@ -209,10 +217,16 @@ void MJScene::equationsOfMotion(double t, double timeStep)
     }
 }
 
-void MJScene::preIntegration(uint64_t callTimeNanos) { this->timeStep = diffNanoToSec(callTimeNanos, this->timeBeforeNanos); }
+void MJScene::preIntegration(uint64_t callTimeNanos) {
+    // NVTX3_FUNC_RANGE();
+    nvtx3::scoped_range f{"MJScene::preIntegration"};
+    this->timeStep = diffNanoToSec(callTimeNanos, this->timeBeforeNanos);
+}
 
 void MJScene::postIntegration(uint64_t callTimeNanos)
 {
+    // NVTX3_FUNC_RANGE();
+    nvtx3::scoped_range f{"MJScene::postIntegration"};
     this->timeBefore = callTimeNanos * NANO2SEC;
     this->timeBeforeNanos = callTimeNanos;
     double callTime = callTimeNanos * NANO2SEC;
@@ -236,6 +250,8 @@ void MJScene::postIntegration(uint64_t callTimeNanos)
 
 void MJScene::writeFwdKinematicsMessages(uint64_t CurrentSimNanos)
 {
+    // NVTX3_FUNC_RANGE();
+    nvtx3::scoped_range f{"MJScene::writeFwdKinematicsMessages"};
     for (auto&& body : this->spec.getBodies()) {
         body.writeFwdKinematicsMessages(this->spec.getMujocoModel(), this->spec.getMujocoData(), CurrentSimNanos);
     }
@@ -403,6 +419,8 @@ MJScene::addForceTorqueActuator(const std::string& name, const MJSite& site)
 
 void MJScene::updateMujocoArraysFromStates()
 {
+    // NVTX3_FUNC_RANGE();
+    nvtx3::scoped_range f{"MJScene::updateMujocoArraysFromStates"};
     auto mujocoModel = this->getMujocoModel();
     auto mujocoData = this->getMujocoData();
 
@@ -421,6 +439,8 @@ void MJScene::updateMujocoArraysFromStates()
 
 void MJScene::writeOutputStateMessages(uint64_t CurrentSimNanos)
 {
+    // NVTX3_FUNC_RANGE();
+    nvtx3::scoped_range f{"MJScene::writeOutputStateMessages"};
     MJSceneStateMsgPayload stateOutMsgPayload{this->qposState->getState(),
                                               this->qvelState->getState(),
                                               this->actState->getState()};

@@ -19,6 +19,7 @@
 
 #include "sim_model.h"
 #include <iostream>
+#include <nvtx3/nvtx3.hpp>
 
 void activateNewThread(void *threadData)
 {
@@ -103,6 +104,8 @@ void SimThreadExecution::unlockParent() {
 */
 void SimThreadExecution::SingleStepProcesses(int64_t stopPri)
 {
+    nvtx3::scoped_range f{"SimThreadExecution::SingleStepProcesses"};
+
     uint64_t nextCallTime = ~((uint64_t) 0);
     std::vector<SysProcess *>::iterator it = this->processList.begin();
     this->CurrentNanos = this->NextTaskTime;
@@ -115,6 +118,7 @@ void SimThreadExecution::SingleStepProcesses(int64_t stopPri)
                   (localProc->nextTaskTime == this->CurrentNanos &&
                    localProc->processPriority >= stopPri))
             {
+                nvtx3::scoped_range scope{"SimThreadExecution::SingleStepProcesses::singleStepNextTask"};
                 localProc->singleStepNextTask(this->CurrentNanos);
             }
             if(localProc->getNextTime() < nextCallTime)
@@ -139,6 +143,8 @@ void SimThreadExecution::SingleStepProcesses(int64_t stopPri)
  */
 void SimThreadExecution::StepUntilStop()
 {
+    nvtx3::scoped_range f{"SimThreadExecution::StepUntilStop"};
+    // NVTX3_FUNC_RANGE();
     /*! - Note that we have to step until both the time is greater and the next
      Task's start time is in the future. If the NextTaskTime is less than
      SimStopTime, then the inPri shouldn't come into effect, so set it to -1
@@ -255,6 +261,8 @@ SimModel::~SimModel()
  */
 void SimModel::StepUntilStop(uint64_t SimStopTime, int64_t stopPri)
 {
+    nvtx3::scoped_range f{"SimModel::StepUntilStop"};
+    // NVTX3_FUNC_RANGE();
     std::cout << std::flush;
     for(auto const* simThread : this->threadList)
     {
@@ -365,6 +373,9 @@ void SimModel::resetInitSimulation() const
 
 void SimModel::SingleStepProcesses(int64_t stopPri)
 {
+    // NVTX3_FUNC_RANGE();
+    nvtx3::scoped_range f{"SimModel::SingleStepProcesses"};
+
     uint64_t nextCallTime = ~((uint64_t) 0);
     auto it = this->processList.begin();
     this->CurrentNanos = this->NextTaskTime;

@@ -21,6 +21,8 @@
 
 #include "architecture/utilities/rigidBodyKinematics.h"
 
+#include <nvtx3/nvtx3.hpp>
+
 void
 NBodyGravity::Reset(uint64_t CurrentSimNanos)
 {
@@ -67,6 +69,8 @@ NBodyGravity::Reset(uint64_t CurrentSimNanos)
 void
 NBodyGravity::UpdateState(uint64_t CurrentSimNanos)
 {
+    // NVTX3_FUNC_RANGE();
+    nvtx3::scoped_range f{"NBodyGravity::UpdateState"};
     for (auto&& [_, target] : targets)
     {
         auto targetStatePayload = target.centerOfMassStateInMsg();
@@ -149,6 +153,8 @@ NBodyGravity::addGravityTarget(std::string name, MJBody& body)
 Eigen::Vector3d
 NBodyGravity::computeAccelerationFromSource(GravitySource& source, Eigen::Vector3d r_J2000)
 {
+    // NVTX3_FUNC_RANGE();
+    nvtx3::scoped_range f{"NBodyGravity::computeAccelerationFromSource"};
     // Orientation and positon of the gravity source in J2000
     Eigen::Matrix3d dcm_sourceFixedJ2000 = Eigen::Matrix3d::Identity();
     Eigen::Vector3d r_sourceJ200= Eigen::Vector3d::Zero();
@@ -172,6 +178,8 @@ NBodyGravity::computeAccelerationFromSource(GravitySource& source, Eigen::Vector
 Eigen::Vector3d
 NBodyGravity::computeAccelerationOnTarget(GravityTarget& target)
 {
+    // NVTX3_FUNC_RANGE();
+    nvtx3::scoped_range f{"NBodyGravity::computeAccelerationOnTarget"};
     /* List of points and frames of interest in this function:
 
         - SpiceRef: Spice messages report body positions and orientations

@@ -17,6 +17,8 @@
 
  */
 
+#include <nvtx3/nvtx3.hpp>
+
 #include "dynamicObject.h"
 #include "architecture/utilities/macroDefinitions.h"
 
@@ -55,12 +57,16 @@ void DynamicObject::setIntegrator(StateVecIntegrator* newIntegrator)
 
 void DynamicObject::syncDynamicsIntegration(DynamicObject* dynPtr)
 {
+    // NVTX3_FUNC_RANGE();
+    nvtx3::scoped_range f{"DynamicObject::syncDynamicsIntegration"};
     this->integrator->dynPtrs.push_back(dynPtr);
     dynPtr->isDynamicsSynced = true;
 }
 
 void DynamicObject::integrateState(uint64_t integrateToThisTimeNanos)
 {
+    // NVTX3_FUNC_RANGE();
+    nvtx3::scoped_range f{"DynamicObject::integrateState"};
     if (this->isDynamicsSynced) return;
 
     for (const auto& dynPtr : this->integrator->dynPtrs) {

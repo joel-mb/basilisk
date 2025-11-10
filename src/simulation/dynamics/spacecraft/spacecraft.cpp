@@ -23,6 +23,7 @@
 #include "architecture/utilities/avsEigenSupport.h"
 #include "architecture/utilities/avsEigenMRP.h"
 #include <iostream>
+#include <nvtx3/nvtx3.hpp>
 
 
 /*! This is the constructor, setting variables to default values */
@@ -97,6 +98,8 @@ void Spacecraft::addDynamicEffector(DynamicEffector *newDynamicEffector)
 /*! This is the method where the messages of the state of vehicle are written */
 void Spacecraft::writeOutputStateMessages(uint64_t clockTime)
 {
+    // NVTX3_FUNC_RANGE();
+    nvtx3::scoped_range f{"Spacecraft::writeOutputStateMessages"};
     // - Populate state output message
     SCStatesMsgPayload stateOut;
     stateOut = this->scStateOutMsg.zeroMsgPayload;
@@ -131,6 +134,8 @@ void Spacecraft::writeOutputStateMessages(uint64_t clockTime)
 /*! If the optional attitude reference input message is set, then read in the reference attitude and set it for the hub*/
 void Spacecraft::readOptionalRefMsg()
 {
+    // NVTX3_FUNC_RANGE();
+    nvtx3::scoped_range f{"Spacecraft::readOptionalRefMsg"};
     if (this->attRefInMsg.isLinked()) {
         Eigen::Vector3d omega_BN_B;
         AttRefMsgPayload attRefMsgBuffer;
@@ -161,6 +166,8 @@ void Spacecraft::readOptionalRefMsg()
 /*! This method is a part of sysModel and is used to integrate the state and update the state in the messaging system */
 void Spacecraft::UpdateState(uint64_t CurrentSimNanos)
 {
+    // NVTX3_FUNC_RANGE();
+    nvtx3::scoped_range f{"Spacecraft::UpdateState"};
     // - Get access to the spice bodies
     this->gravField.UpdateState(CurrentSimNanos);
 
@@ -189,6 +196,8 @@ void Spacecraft::UpdateState(uint64_t CurrentSimNanos)
  messages, and calculating energy and momentum */
 void Spacecraft::linkInStates(DynParamManager& statesIn)
 {
+    // NVTX3_FUNC_RANGE();
+    nvtx3::scoped_range f{"Spacecraft::linkInStates"};
     // - Get access to all hub states
     this->hubR_N = statesIn.getStateObject(this->hub.nameOfHubPosition);
     this->hubV_N = statesIn.getStateObject(this->hub.nameOfHubVelocity);
@@ -208,6 +217,8 @@ void Spacecraft::linkInStates(DynParamManager& statesIn)
  for the simulation */
 void Spacecraft::initializeDynamics()
 {
+    // NVTX3_FUNC_RANGE();
+    nvtx3::scoped_range f{"Spacecraft::initializeDynamics"};
     // - Spacecraft initiates all of the spaceCraft mass properties
     Eigen::MatrixXd initM_SC(1,1);
     Eigen::MatrixXd initMDot_SC(1,1);
@@ -287,6 +298,8 @@ void Spacecraft::initializeDynamics()
 /*! This method is used to update the mass properties of the entire spacecraft using contributions from stateEffectors */
 void Spacecraft::updateSCMassProps(double time)
 {
+    // NVTX3_FUNC_RANGE();
+    nvtx3::scoped_range f{"Spacecraft::updateSCMassProps"};
     // - Zero the properties which will get populated in this method
     (*this->m_SC).setZero();
     (*this->mDot_SC).setZero();
@@ -332,6 +345,8 @@ void Spacecraft::updateSCMassProps(double time)
  dynParam Manager thus solving for Xdot*/
 void Spacecraft::equationsOfMotion(double integTimeSeconds, double timeStep)
 {
+    // NVTX3_FUNC_RANGE();
+    nvtx3::scoped_range f{"Spacecraft::equationsOfMotion"};
     // - Update time to the current time
     uint64_t integTimeNanos = secToNano(integTimeSeconds);
 
@@ -450,6 +465,8 @@ void Spacecraft::equationsOfMotion(double integTimeSeconds, double timeStep)
  @param integrateToThisTimeNanos Time to integrate to
  */
 void Spacecraft::preIntegration(uint64_t integrateToThisTimeNanos) {
+    // NVTX3_FUNC_RANGE();
+    nvtx3::scoped_range f{"Spacecraft::preIntegration"};
     this->timeStep = diffNanoToSec(integrateToThisTimeNanos, this->timeBeforeNanos); // - Find the time step in seconds
 
     // - Find v_CN_N before integration for accumulated DV
@@ -473,6 +490,8 @@ void Spacecraft::preIntegration(uint64_t integrateToThisTimeNanos) {
  @param integrateToThisTimeNanos Time to integrate to
  */
 void Spacecraft::postIntegration(uint64_t integrateToThisTimeNanos) {
+    // NVTX3_FUNC_RANGE();
+    nvtx3::scoped_range f{"Spacecraft::postIntegration"};
     this->timeBeforeNanos = integrateToThisTimeNanos;     // - copy the current time into previous time for next integrate state call
     this->timeBefore = integrateToThisTimeNanos*NANO2SEC;
     double integrateToThisTime = integrateToThisTimeNanos*NANO2SEC; // - convert to seconds
@@ -537,6 +556,8 @@ void Spacecraft::postIntegration(uint64_t integrateToThisTimeNanos) {
  for validation purposes. */
 void Spacecraft::computeEnergyMomentum(double time)
 {
+    // NVTX3_FUNC_RANGE();
+    nvtx3::scoped_range f{"Spacecraft::computeEnergyMomentum"};
     // - Grab values from state Manager
     Eigen::Vector3d rLocal_BN_N = hubR_N->getState();
     Eigen::Vector3d rDotLocal_BN_N = hubV_N->getState();
@@ -617,6 +638,8 @@ void Spacecraft::computeEnergyMomentum(double time)
  are calculated in the intergrator calls */
 void Spacecraft::calcForceTorqueFromStateEffectors(double time, Eigen::Vector3d omega_BN_B)
 {
+    // NVTX3_FUNC_RANGE();
+    nvtx3::scoped_range f{"Spacecraft::calcForceTorqueFromStateEffectors"};
     // - Loop over stateEffectors to get their contributions to energy and momentum
     std::vector<StateEffector*>::iterator it;
     for(it = this->states.begin(); it != this->states.end(); it++)

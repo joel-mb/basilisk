@@ -90,6 +90,7 @@ class BasiliskConan(ConanFile):
     requires = [
         "eigen/3.4.0",
         "cspice/0067",
+        "nvtx/3.3.0"
     ]
     package_type = "shared-library"
     options = {

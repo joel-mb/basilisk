@@ -20,6 +20,7 @@
 #include <sstream>
 #include "SpiceUsr.h"
 #include <string.h>
+#include <nvtx3/nvtx3.hpp>
 #include "architecture/utilities/simDefinitions.h"
 #include "architecture/utilities/macroDefinitions.h"
 #include "architecture/utilities/rigidBodyKinematics.h"
@@ -193,6 +194,8 @@ void SpiceInterface::initTimeData()
  */
 void SpiceInterface::computeGPSData()
 {
+    nvtx3::scoped_range f{"SpiceInterface::computeGPSData"};
+    // NVTX3_FUNC_RANGE();
     double JDDifference;
 
     //! - The difference between the epochs in julian date terms is the total
@@ -215,6 +218,8 @@ void SpiceInterface::computeGPSData()
  */
 void SpiceInterface::writeOutputMessages(uint64_t CurrentClock)
 {
+    // NVTX3_FUNC_RANGE();
+    nvtx3::scoped_range f{"SpiceInterface::writeOutputMessages"};
     SpiceTimeMsgPayload OutputData;
 
     //! - Set the members of the time output message structure and write
@@ -262,6 +267,8 @@ void SpiceInterface::writeOutputMessages(uint64_t CurrentClock)
  */
 void SpiceInterface::UpdateState(uint64_t CurrentSimNanos)
 {
+    // NVTX3_FUNC_RANGE();
+    nvtx3::scoped_range f{"SpiceInterface::UpdateState"};
     //! - Increment the J2000 elapsed time based on init value and Current sim
     this->J2000Current = this->J2000ETInit + CurrentSimNanos*NANO2SEC;
 
@@ -372,6 +379,8 @@ void SpiceInterface::addSpacecraftNames(std::vector<std::string> spacecraftNames
  */
 void SpiceInterface::pullSpiceData(std::vector<SpicePlanetStateMsgPayload> *spiceData)
 {
+    // NVTX3_FUNC_RANGE();
+    nvtx3::scoped_range f{"SpiceInterface::pullSpiceData"};
     std::vector<SpicePlanetStateMsgPayload>::iterator planit;
 
     /*! - Loop over the vector of Spice objects and compute values.
@@ -436,6 +445,8 @@ void SpiceInterface::pullSpiceData(std::vector<SpicePlanetStateMsgPayload> *spic
  */
 int SpiceInterface::loadSpiceKernel(char *kernelName, const char *dataPath)
 {
+    // NVTX3_FUNC_RANGE();
+    nvtx3::scoped_range f{"SpiceInterface::loadSpiceKernel"};
     char *fileName = new char[this->charBufferSize];
     SpiceChar *name = new SpiceChar[this->charBufferSize];
 

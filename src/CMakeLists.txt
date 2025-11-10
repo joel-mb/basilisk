@@ -457,7 +457,7 @@ foreach(spice_file IN LISTS SPICE_FILES)
     download_and_move_file("${url}" "${destination}")
 endforeach()
 
-
+find_package(nvtx REQUIRED)
 
 # TODO: Remove the global link-libraries call
 find_package(Eigen3 CONFIG REQUIRED)
@@ -474,7 +474,7 @@ else()
       "$<$<CONFIG:MinSizeRel>:${Eigen3_INCLUDE_DIRS_RELEASE}>")
 endif()
 set_property(TARGET Eigen3::Eigen3 PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${DIRECTORIES})
-link_libraries(Eigen3::Eigen3)
+link_libraries(Eigen3::Eigen3 nvtx::nvtx)
 
 # Add general compiler flags
 set(CMAKE_MACOSX_RPATH 1)
