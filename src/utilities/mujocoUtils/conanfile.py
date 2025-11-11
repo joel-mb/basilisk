@@ -13,7 +13,11 @@ class MujocoReplayConan(ConanFile):
         version_file = os.path.join(self.recipe_folder, "..", "..", "..", "libs", "mujoco", "version.txt")
         mujoco_version = load(self, version_file).strip()
 
-        self.requires("glfw/3.4")
+        # Disable glfw/3.4. This Conan package depends on opengl/system and xorg/system,
+        # which require installing additional system dependencies that are not actually needed.
+        # This approach assumes that the necessary dependencies for building and running
+        # the MujocoReplay are already installed on the system.
+        # self.requires("glfw/3.4")
         self.requires(f"mujoco/{mujoco_version}")
 
     def build(self):
