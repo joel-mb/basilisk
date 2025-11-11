@@ -25,7 +25,9 @@ import numpy as np
 
 from Basilisk import __path__
 
-bskPath = __path__[0]
+# FIXME
+# Look for the replay binary in the development directory, since it is not copied to the final installation path.
+bskPath = os.path.join(os.environ["SPACE_DEV_PATH"], "external/basilisk/src")
 
 
 def visualize(
