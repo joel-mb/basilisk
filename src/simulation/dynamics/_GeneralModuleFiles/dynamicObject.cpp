@@ -65,17 +65,25 @@ void DynamicObject::syncDynamicsIntegration(DynamicObject* dynPtr)
 
 void DynamicObject::integrateState(uint64_t integrateToThisTimeNanos)
 {
-    // NVTX3_FUNC_RANGE();
     nvtx3::scoped_range f{"DynamicObject::integrateState"};
     if (this->isDynamicsSynced) return;
 
-    for (const auto& dynPtr : this->integrator->dynPtrs) {
-        dynPtr->preIntegration(integrateToThisTimeNanos);
+    {
+        nvtx3::scoped_range f{"DynamicObject::preIntegration"};
+        for (const auto& dynPtr : this->integrator->dynPtrs) {
+            dynPtr->preIntegration(integrateToThisTimeNanos);
+        }
     }
 
-    this->integrator->integrate(this->timeBefore, this->timeStep);
+    {
+        nvtx3::scoped_range f{"DynamicObject::integrate"};
+        this->integrator->integrate(this->timeBefore, this->timeStep);
+    }
 
-    for (const auto& dynPtr : this->integrator->dynPtrs) {
-        dynPtr->postIntegration(integrateToThisTimeNanos);
+    {
+        nvtx3::scoped_range f{"DynamicObject::postIntegration"};
+        for (const auto& dynPtr : this->integrator->dynPtrs) {
+            dynPtr->postIntegration(integrateToThisTimeNanos);
+        }
     }
 }

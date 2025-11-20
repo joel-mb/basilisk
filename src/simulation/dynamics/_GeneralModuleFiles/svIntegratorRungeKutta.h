@@ -32,6 +32,8 @@
 
 #include <iostream>
 
+#include <nvtx3/nvtx3.hpp>
+
 /**
  * Stores the coefficients necessary to use the Runge-Kutta methods.
  *
@@ -151,6 +153,8 @@ svIntegratorRungeKutta<numberStages>::svIntegratorRungeKutta(
 template <size_t numberStages>
 void svIntegratorRungeKutta<numberStages>::integrate(double currentTime, double timeStep)
 {
+    nvtx3::scoped_range f{"svIntegratorRungeKutta::integrate"};
+
     ExtendedStateVector currentState = ExtendedStateVector::fromStates(this->dynPtrs);
     KCoefficientsValues kValues = this->computeKCoefficients(currentTime, timeStep, currentState);
     ExtendedStateVector nextState = this->propagateStateWithKVectors(timeStep,

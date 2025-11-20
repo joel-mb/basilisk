@@ -28,6 +28,8 @@
 #include <optional>
 #include <stdint.h>
 
+#include <nvtx3/nvtx3.hpp>
+
 /**
  * Extends RKCoefficients with "b" coefficients used for the lower order method.
  *
@@ -268,6 +270,10 @@ template <size_t numberStages>
 void svIntegratorAdaptiveRungeKutta<numberStages>::integrate(double startingTime,
                                                              double desiredTimeStep)
 {
+    nvtx3::scoped_range f{"svIntegratorAdaptiveRungeKutta::integrate"};
+    // std::cout << "Starting time: " << startingTime << std::endl;
+    // std::cout << "Desired time step: " << desiredTimeStep << std::endl;
+
     double time = startingTime;
     double timeStep = desiredTimeStep;
     ExtendedStateVector state = ExtendedStateVector::fromStates(this->dynPtrs);
@@ -277,6 +283,7 @@ void svIntegratorAdaptiveRungeKutta<numberStages>::integrate(double startingTime
         static_cast<RKAdaptiveCoefficients<numberStages>*>(this->coefficients.get());
 
     // Continue until we are done with the desired time step
+    //int iterations = 0;
     while (time < startingTime + desiredTimeStep) {
         // Much like regular Runge Kutta, we compute the
         // "k" coefficients
@@ -320,7 +327,10 @@ void svIntegratorAdaptiveRungeKutta<numberStages>::integrate(double startingTime
         newTimeStep =
             std::min(newTimeStep, startingTime + desiredTimeStep - time); // Avoid over-stepping
         timeStep = newTimeStep;
+
+        //iterations += 1;
     }
+    // std::cout << "Total iterations: " << iterations << std::endl;
 
     // Update the dynamic objects with the final state obtained
     state.setStates(this->dynPtrs);
