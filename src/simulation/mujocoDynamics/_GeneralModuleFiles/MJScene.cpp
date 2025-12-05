@@ -304,6 +304,40 @@ void MJScene::printMujocoModelDebugInfo(const std::string& path)
     mj_printModel(this->getMujocoModel(), path.c_str());
 }
 
+int MJScene::getMujocoNCollisions()
+{
+    return this->getMujocoData()->ncon;
+}
+
+void MJScene::printMujocoCollisionDebugInfo() {
+    mjData* d = this->getMujocoData();
+    mjModel* m = this->getMujocoModel();
+
+    std::cout << "---- MUJOCO COLLISIONS ----" << std::endl;
+    std::cout << "Number of contacts: " << d->ncon << std::endl;
+
+    // For each contact
+    for (int i = 0; i < d->ncon; i++)
+    {
+        const mjContact& c = d->contact[i];
+
+        // Geom IDs
+        int g1 = c.geom1;
+        int g2 = c.geom2;
+
+        // Body IDs
+        int b1 = m->geom_bodyid[g1];
+        int b2 = m->geom_bodyid[g2];
+
+        const char* body1_name = m->names + m->name_bodyadr[b1];
+        const char* body2_name = m->names + m->name_bodyadr[b2];
+
+        std::cout << "Contact " << i << ":" << std::endl;
+        std::cout << "  Bodies: " << body1_name << " <-> " << body2_name << std::endl;
+        std::cout << "  Distance: " << c.dist << std::endl;
+    }
+}
+
 MJBody& MJScene::getBody(const std::string& name)
 {
     auto& bodies = this->spec.getBodies();

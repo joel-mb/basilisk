@@ -537,6 +537,18 @@ public:
     void printMujocoModelDebugInfo(const std::string& path);
 
     /**
+     * @brief Retrieve the total number of collisions detected by MuJoCo.
+     *
+     * @return Number of collisions.
+     */
+    int getMujocoNCollisions();
+
+    /**
+     * @ brief Prints MuJoCo collision iformation for debugging purposes.
+     */
+    void printMujocoCollisionDebugInfo();
+
+    /**
      * @brief Logs an error message on the BKLogger and throws an exception.
      *
      * @tparam T The type of the exception to throw.
