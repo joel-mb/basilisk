@@ -338,6 +338,27 @@ void MJScene::printMujocoCollisionDebugInfo() {
     }
 }
 
+void MJScene::printCenterOfMass(const std::string& body_name) {
+    mjData* mjdata = this->getMujocoData();
+    mjModel* mjmodel = this->getMujocoModel();
+
+    int body_id = mj_name2id(mjmodel, mjOBJ_BODY, body_name.c_str());
+    if (body_id < 0) {
+        std::cerr << "Body not found: " << body_name << std::endl;
+        return;
+    }
+
+    // xipos contiene la posición global del centro de masa del cuerpo
+    //const double* com_pos = mjdata->xipos + 3 * body_id;
+    const double* com_pos = mjdata->subtree_com + 3 * body_id;
+
+    std::cout << "CoM of " << body_name << ": "
+              << com_pos[0] << ", "
+              << com_pos[1] << ", "
+              << com_pos[2] << std::endl;
+}
+
+
 MJBody& MJScene::getBody(const std::string& name)
 {
     auto& bodies = this->spec.getBodies();
