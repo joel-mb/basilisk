@@ -275,3 +275,15 @@ bool MJBody::hasSite(const std::string& name) const
                return obj.getName() == name;
            }) != std::end(sites);
 }
+
+const Eigen::Vector3d MJBody::getCurrentSubtreeCenterOfMass() {
+    mjData* mjdata = this->getSpec().getMujocoData();
+    const double* origin = mjdata->xpos + 3 * this->getId();
+    const double* com = mjdata->subtree_com + 3 * this->getId();
+
+    return Eigen::Vector3d(
+        com[0] - origin[0],
+        com[1] - origin[1],
+        com[2] - origin[2]
+    );
+}

@@ -548,8 +548,6 @@ public:
      */
     void printMujocoCollisionDebugInfo();
 
-    void printCenterOfMass(const std::string& body_name);
-
     /**
      * @brief Logs an error message on the BKLogger and throws an exception.
      *

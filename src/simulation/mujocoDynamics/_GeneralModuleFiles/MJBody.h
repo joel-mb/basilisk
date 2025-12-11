@@ -126,6 +126,13 @@ public:
     MJSite& getCenterOfMass() { return getSite(this->name + "_com"); }
 
     /**
+     * @brief Retrieves the center of mass of the body's subtree relative to the body frame.
+     *
+     * @return A 3D vector representing the subtree center of mass relative to the body origin.
+     */
+    const Eigen::Vector3d getCurrentSubtreeCenterOfMass();
+
+    /**
      * @brief Retrieves the origin site.
      *
      * This site corresponds to the origin (main, base) reference frame
