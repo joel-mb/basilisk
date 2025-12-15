@@ -104,7 +104,8 @@ void MJBody::configure(const mjModel* mujocoModel)
         this->getSpec().getScene().logAndThrow("Tried to configure MJBody before massState was created.");
     }
 
-    this->massState->setState(Eigen::Matrix<double, 1, 1>{mujocoModel->body_mass[this->getId()]});
+    // Use subtree mass to account for the mass of this body and all its children.
+    this->massState->setState(Eigen::Matrix<double, 1, 1>{mujocoModel->body_subtreemass[this->getId()]});
 }
 
 MJSite& MJBody::getSite(const std::string& name)
@@ -216,8 +217,11 @@ void MJBody::updateMujocoModelFromMassProps()
 {
     auto m = spec.getMujocoModel();
 
+    // TODO: This needs to be handled properly.
+    // This method does not account for the subtree mass (body + all child bodies).
+    // It must be updated accordingly when modifying or updating masses.
     double newMass = this->massState->getState()(0, 0);
-    auto diff = abs(m->body_mass[this->getId()] - newMass);
+    auto diff = abs(m->body_subtreemass[this->getId()] - newMass);
     if (diff > 10 * std::numeric_limits<double>::epsilon()) {
 
         // Update the mass in the mjModel AND mjsBody
