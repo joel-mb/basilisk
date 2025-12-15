@@ -134,6 +134,10 @@ NBodyGravity::addGravityTarget(std::string name, MJSite& site)
     /* Tie the state outMsg of the site to the inMsg of the gravity target */
     target.centerOfMassStateInMsg.subscribeTo( &site.stateOutMsg );
 
+    // Link body mass property
+    auto& body = site.getBody();
+    target.massPropertiesInMsg.subscribeTo( &body.massPropertiesOutMsg );
+
     /* Create a new actuator on the site, then tie the force outMsg of
     the gravity target to the actuator force inMsg */
     std::string actuatorName = ModelTag + "_gravity_target_at_" + name;
@@ -146,7 +150,6 @@ GravityTarget&
 NBodyGravity::addGravityTarget(std::string name, MJBody& body)
 {
     auto& target = addGravityTarget(std::move(name), body.getCenterOfMass());
-    target.massPropertiesInMsg.subscribeTo( &body.massPropertiesOutMsg );
     return target;
 }
 
