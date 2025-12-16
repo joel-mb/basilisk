@@ -284,10 +284,11 @@ const Eigen::Vector3d MJBody::getCurrentSubtreeCenterOfMass() {
     mjData* mjdata = this->getSpec().getMujocoData();
     const double* origin = mjdata->xpos + 3 * this->getId();
     const double* com = mjdata->subtree_com + 3 * this->getId();
+    const double* rot = mjdata->xmat + 9 * this->getId();
 
-    return Eigen::Vector3d(
-        com[0] - origin[0],
-        com[1] - origin[1],
-        com[2] - origin[2]
-    );
+    Eigen::Vector3d t = Eigen::Map<const Eigen::Vector3d>(com) 
+                      - Eigen::Map<const Eigen::Vector3d>(origin);
+    Eigen::Matrix3d R = Eigen::Map<const Eigen::Matrix<double,3,3,Eigen::RowMajor>>(rot);
+
+    return R.transpose() * t;
 }
