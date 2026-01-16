@@ -199,15 +199,15 @@ special case of prescribed effector branching explained in :ref:`prescribedMotio
         </tr>
         <tr>
           <td class="label">Spinning Bodies NDOF</td>
-          <td class="yellow"></td><td class="yellow"></td><td class="yellow"></td><td class="yellow"></td>
-          <td class="yellow"></td><td class="yellow"></td><td class="yellow"></td><td class="yellow"></td>
+          <td class="green"></td><td class="yellow"></td><td class="green"></td><td class="yellow"></td>
+          <td class="green"></td><td class="yellow"></td><td class="yellow"></td><td class="yellow"></td>
           <td class="red"></td><td class="red"></td><td class="red"></td><td class="red"></td>
           <td class="red"></td><td class="red"></td><td class="red"></td><td class="red"></td>
         </tr>
         <tr>
           <td class="label">Hinged Rigid Bodies</td>
-          <td class="yellow"></td><td class="yellow"></td><td class="yellow"></td><td class="yellow"></td>
-          <td class="yellow"></td><td class="yellow"></td><td class="yellow"></td><td class="yellow"></td>
+          <td class="green"></td><td class="yellow"></td><td class="green"></td><td class="yellow"></td>
+          <td class="green"></td><td class="yellow"></td><td class="yellow"></td><td class="yellow"></td>
           <td class="red"></td><td class="red"></td><td class="red"></td><td class="red"></td>
           <td class="red"></td><td class="red"></td><td class="red"></td><td class="red"></td>
         </tr>
@@ -227,8 +227,8 @@ special case of prescribed effector branching explained in :ref:`prescribedMotio
         </tr>
         <tr>
           <td class="label">Linear Translating Bodies 1DOF</td>
-          <td class="yellow"></td><td class="yellow"></td><td class="yellow"></td><td class="yellow"></td>
-          <td class="yellow"></td><td class="yellow"></td><td class="yellow"></td><td class="yellow"></td>
+          <td class="green"></td><td class="yellow"></td><td class="green"></td><td class="yellow"></td>
+          <td class="green"></td><td class="yellow"></td><td class="yellow"></td><td class="yellow"></td>
           <td class="red"></td><td class="red"></td><td class="red"></td><td class="red"></td>
           <td class="red"></td><td class="red"></td><td class="red"></td><td class="red"></td>
         </tr>
@@ -270,7 +270,7 @@ effector to the hub, but instead called with the state effector. Given a setup a
     scSim.AddModelToTask(simTaskName, stateEff)
     scSim.AddModelToTask(simTaskName, dynEff)
 
-By default, effectors attached to the hub using::
+By default, effectors are attached to the hub using::
 
     scObject.addDynamicEffector(dynEff)
     scSim.AddModelToTask(simTaskName, dynEff)

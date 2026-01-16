@@ -1,8 +1,8 @@
-name: Merge to develop
+name: Merge to master or develop
 
 on:
   push:
-    branches: [develop]
+    branches: [master, develop]
   workflow_dispatch:
 
 permissions:
@@ -14,31 +14,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  bump_version:
-    name: Bump version (skip if already bumped)
-    runs-on: ubuntu-latest
-    if: ${{ github.actor != 'AVSlabBot' }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: develop
-          fetch-depth: 0
-          token: ${{ secrets.BOT_ACCESS_TOKEN }}
-
-      - name: Bump version
-        id: bump
-        run: ./.github/workflows/version-bumper.sh ./docs/source/bskVersion.txt
-
-      - name: Commit and push
-        run: |
-          git config user.name "AVSlabBot"
-          git config user.email "cuavslab@gmail.com"
-          git commit -a -m "[AUTO] Bump version number" || echo "No changes"
-          git push || true
-
   build_documentation:
     name: macOS Docs Deployment
-    needs: bump_version
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -52,10 +29,19 @@ jobs:
           conan-args: --opNav True --allOptPkg --mujoco True --mujocoReplay True
       - name: Build docs
         uses: ./.github/actions/docs
-      - name: Deploy
-        if: ${{ success() }} # deploy only if prior steps ok
+      - name: Deploy master branch merges to /
+        if: success() && github.ref_name == 'master'
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./docs/build/html
-          force_orphan: true
+          destination_dir: .
+          keep_files: true
+      - name: Deploy develop branch merges to /develop
+        if: success() && github.ref_name == 'develop'
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs/build/html
+          destination_dir: develop
+          keep_files: true

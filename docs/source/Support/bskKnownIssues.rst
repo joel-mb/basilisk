@@ -11,6 +11,10 @@ Basilisk Known Issues
 
 Version |release|
 -----------------
+- The denton flux model API has changed. The module now uses the new data fetching
+  API and thus relies on users passing in the correct support data location via
+  ``configureDentonFiles``. Previously, the module automatically searched for the
+  data files in the ``supportData`` folder.
 - When building from source on Python 3.13 using SWIG 4.4.0, a build failure may occur
   if ``pyLimitedAPI`` is set to an ABI lower than Python 3.13 (e.g., ``0x03080000``).
   SWIG 4.4.0 introduces a new C-API codepath for Python 3.13 that expects newer
@@ -18,6 +22,8 @@ Version |release|
   Basilisk with Python 3.13 or above, we automatically default to using the newer cp313 ABI.
 - :ref:`gravityEffector` had a typo where the total gravity potential contribution of the celestial bodies
   was not being computed properly. Fixed now.
+- :ref:`MJSite` hade an issue where the angular velocity that was being written into the stateOutMsg
+  was in the inertial frame components not the body frame components.  This is now fixed.
 - The way body-fixed locations are added to Vizard data is changed.  Now Vizard retains a copy of the
   list of locations and only incremental changes have to be sent using the ``vizSupport.changeLocation()``
   method.  If the script was directly manipulating the :ref:`vizSupport` list that functionality no longer works.
@@ -32,6 +38,11 @@ Version |release|
   been deprecated and will be removed after October 11, 2026.
 - For :ref:`vizInterface`.settings, changed the name of ``viewCameraConeHUD`` to ``viewCameraFrustrumHUD``.
   Using the old settings name results in the setting not being applied.
+- When building the Basilisk documentation with doxygen 1.15 or newer, warnings associated with
+  unclosed quotes are treated as errors and cause the build to fail. Quotes are fixed now.
+- :ref:`spinningBodyOneDOFStateEffector` and :ref:`spinningBodyNDOFStateEffector` both registered
+  their state variables under the same names, resulting in one overwriting the other when both are
+  added to the same simulation and producing a ``BSK_ERROR``. State names are now made unique.
 
 
 Version 2.8.0

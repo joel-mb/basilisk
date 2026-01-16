@@ -74,13 +74,13 @@ from Basilisk.architecture import messaging
 # Note: effectors commented out as True are expected to be added in the future, effectors
 #       commented out as False are not expected to be added in the future
 @pytest.mark.parametrize("stateEffector, isParent", [
-    # ("hingedRigidBodies",               True),
+    ("hingedRigidBodies",             True),
     # ("dualHingedRigidBodies",           True),
     # ("nHingedRigidBodies",              True),
     ("spinningBodiesOneDOF",          True),
     ("spinningBodiesTwoDOF",          True),
-    # ("spinningBodiesNDOF",              True),
-    # ("linearTranslationBodiesOneDOF",   True),
+    ("spinningBodiesNDOF",            True),
+    ("linearTranslationBodiesOneDOF", True),
     # ("linearTranslationBodiesNDOF",     True),
     ("linearSpringMassDamper",          False),
     # ("sphericalPendulum",               False),
@@ -117,16 +117,8 @@ def test_effectorBranchingIntegratedTest(show_plots, stateEffector, isParent, dy
     addDynamicEffector() method is called. The dynamic effector compatibility is checked at
     simulation initialization when linkInProperties() is called.
 
-    State effectors that are expected to be able to host dynamic effectors (isParent) include:
-
-    - :ref:`spinningBodyOneDOFStateEffector`
-    - :ref:`spinningBodyTwoDOFStateEffector`
-
-    Dynamic effectors that are expected to be able to attach to state effectors (isChild) include:
-
-    - :ref:`extForceTorque`
-    - :ref:`thrusterDynamicEffector`
-    - :ref:`constraintDynamicEffector`
+    A summary of which state effectors and dynamic effectors are expected to be able to act as a
+    parent or child effector to another is summarized in :ref:`bskPrinciples-11`.
 
     Note that the constraint effector is tested in two configurations: once where one vehicle's
     state effector is attached to the hub on another vehicle (``constraintEffectorOneHub``), and
@@ -255,6 +247,15 @@ def effectorBranchingIntegratedTest(show_plots, stateEffector, isParent, dynamic
     elif stateEffector == "spinningBodiesTwoDOF":
         stateEff, stateEffProps = setup_spinningBodiesTwoDOF()
         segment = 2
+    elif stateEffector == "spinningBodiesNDOF":
+        stateEff, stateEffProps = setup_spinningBodiesNDOF()
+        segment = 4
+    elif stateEffector == "hingedRigidBodies":
+        stateEff, stateEffProps = setup_hingedRigidBodyStateEffector()
+        segment = 1
+    elif stateEffector == "linearTranslationBodiesOneDOF":
+        stateEff, stateEffProps = setup_translatingBodiesOneDOF()
+        segment = 1
     elif stateEffector == "linearSpringMassDamper":
         stateEff, stateEffProps = setup_linearSpringMassDamper()
         segment = 1
@@ -336,13 +337,27 @@ def effectorBranchingIntegratedTest(show_plots, stateEffector, isParent, dynamic
         assert isChild, "FAILED: attached an incompatible dynamic effector without erroring"
 
     # Check that properties are being handed correctly from state effector to dynamic effector
-    assert getDynEffInertialPropName(dynamicEffector, dynamicEff, "Position") == getStateEffInertialPropName(segment, stateEff, "Position"), (
+    if (stateEffector == "spinningBodiesNDOF" or stateEffector == "linearTranslationBodiesOneDOF"
+        or stateEffector == "linearTranslationBodiesNDOF"):
+        # Newer effector classes keep all variables private and so we check with the dynParamManager
+        positionName = getModernStateEffInertialPropName(scObject, segment, stateEff, "Position")
+        velocityName = getModernStateEffInertialPropName(scObject, segment, stateEff, "Velocity")
+        attitudeName = getModernStateEffInertialPropName(scObject, segment, stateEff, "Attitude")
+        angvelocityName = getModernStateEffInertialPropName(scObject, segment, stateEff, "AngVelocity")
+    else:
+        # older effector classes have public variable names that are simply checked directly
+        positionName = getStateEffInertialPropName(segment, stateEff, "Position")
+        velocityName = getStateEffInertialPropName(segment, stateEff, "Velocity")
+        attitudeName = getStateEffInertialPropName(segment, stateEff, "Attitude")
+        angvelocityName = getStateEffInertialPropName(segment, stateEff, "AngVelocity")
+
+    assert getDynEffInertialPropName(dynamicEffector, dynamicEff, "Position") == positionName, (
         "FAILED: inertialPositionProperty not handed correctly between state and dynamic effectors")
-    assert getDynEffInertialPropName(dynamicEffector, dynamicEff, "Velocity") == getStateEffInertialPropName(segment, stateEff, "Velocity"), (
+    assert getDynEffInertialPropName(dynamicEffector, dynamicEff, "Velocity") == velocityName, (
         "FAILED: inertialVelocityProperty not handed correctly between state and dynamic effectors")
-    assert getDynEffInertialPropName(dynamicEffector, dynamicEff, "Attitude") == getStateEffInertialPropName(segment, stateEff, "Attitude"), (
+    assert getDynEffInertialPropName(dynamicEffector, dynamicEff, "Attitude") == attitudeName, (
         "FAILED: inertialAttitudeProperty not handed correctly between state and dynamic effectors")
-    assert getDynEffInertialPropName(dynamicEffector, dynamicEff, "AngVelocity") == getStateEffInertialPropName(segment, stateEff, "AngVelocity"), (
+    assert getDynEffInertialPropName(dynamicEffector, dynamicEff, "AngVelocity") == angvelocityName, (
         "FAILED: inertialAngVelocityProperty not handed correctly between state and dynamic effectors")
 
     # Run the sim for a few timesteps to confirm execution without error
@@ -358,8 +373,17 @@ def effectorBranchingIntegratedTest(show_plots, stateEffector, isParent, dynamic
     rotAngMom_N = scObjectLog.totRotAngMomPntC_N  # total rotational angular momentum about the total vehicle COM
     totAccumDV_N = datLog.TotalAccumDV_CN_N # total accumulated deltaV of the total vehicle COM
 
-    # Grab effector's inertial position and attitude properties
-    r_ScN_N_log = inertialPropLog.r_BN_N
+    # Grab effector's inertial position
+    if stateEffector in ["hingedRigidBodies", "dualHingedRigidBodies", "nHingedRigidBodies"]:
+        r_ScN_N_log = np.zeros_like(inertialPropLog.r_BN_N)
+        for i in range(len(inertialPropLog.sigma_BN)):
+            sigmai_SN = inertialPropLog.sigma_BN[i, :] # MRP at timestep i and S is the parent frame not B
+            dcm_NS = np.transpose(rbk.MRP2C(sigmai_SN))
+            r_ScN_N_log[i, :] = inertialPropLog.r_BN_N[i, :] + (dcm_NS @ stateEffProps.r_PcP_P).flatten()
+    else:
+        r_ScN_N_log = inertialPropLog.r_BN_N
+
+    # Grab effector's attitude properties
     sigma_SN_log = inertialPropLog.sigma_BN
 
     # Compute conservation quantities using the state and dynamic effector's logged properties
@@ -375,11 +399,18 @@ def effectorBranchingIntegratedTest(show_plots, stateEffector, isParent, dynamic
             dV[idx,:] = (dV[idx-1,:] + (dcm_NS @ np.array(dynamicEff.extForce_B).flatten())
                        / (scObject.hub.mHub + stateEffProps.totalMass) * timestep)
         # Compute the total external torque on the vehicle
-        extTorque[idx,:] = (dcm_NS @ np.array(dynamicEff.extTorquePntB_B).flatten()
-                             + np.cross(r_ScN_N_log[idx+1,:] - dcm_NS
-                             @ np.array(stateEffProps.r_PcP_P).flatten()
-                             - datLog.r_CN_N[idx,:], dcm_NS
-                             @ np.array(dynamicEff.extForce_B).flatten()))
+        if stateEffector == "linearTranslationBodiesOneDOF" or stateEffector == "linearTranslationBodiesNDOF":
+            extTorque[idx,:] = (dcm_NS @ np.array(dynamicEff.extTorquePntB_B).flatten()
+                                + np.cross(r_ScN_N_log[idx+1,:] - dcm_NS
+                                @ np.array(stateEffProps.r_PcP_P).flatten()
+                                - datLog.r_CN_N[idx,:], dcm_NS
+                                @ np.array(dynamicEff.extForce_B).flatten()))
+        else:
+            extTorque[idx,:] = (dcm_NS @ np.array(dynamicEff.extTorquePntB_B).flatten()
+                                + np.cross(r_ScN_N_log[idx+1,:] - dcm_NS
+                                @ np.array(stateEffProps.r_PcP_P).flatten()
+                                - datLog.r_CN_N[idx,:], dcm_NS
+                                @ np.array(dynamicEff.extForce_B).flatten()))
 
     # Integrate the torque to find accumulated change in angular momentum
     dx = np.ones(n-1)*timestep
@@ -433,12 +464,16 @@ def effectorBranchingIntegratedTest(show_plots, stateEffector, isParent, dynamic
 
     # Check angular momentum difference against sim truth
     angMom_accuracy = 1e-3
-    np.testing.assert_allclose(rotAngMom_N[:-1,:]-rotAngMom_N[0,:] - dH, 0, atol=angMom_accuracy,
+    # np.testing.assert_allclose(np.linalg.norm(rotAngMom_N[:-1,:]-rotAngMom_N[0,:] - dH, axis=1), 0, atol=angMom_accuracy,
+    #                            err_msg="angular momentum difference beyond accuracy limits")
+    np.testing.assert_allclose(rotAngMom_N[:-1,:]-rotAngMom_N[0,:], dH, atol=angMom_accuracy,
                                err_msg="angular momentum difference beyond accuracy limits")
 
     # Check deltaV difference against sim truth
     deltaV_accuracy = 1e-6
-    np.testing.assert_allclose(totAccumDV_N[:-1,:] - dV, 0, atol=deltaV_accuracy,
+    # np.testing.assert_allclose(np.linalg.norm(totAccumDV_N[:-1,:] - dV, axis=1), 0, atol=deltaV_accuracy,
+    #                            err_msg="deltaV difference beyond accuracy limits")
+    np.testing.assert_allclose(totAccumDV_N[:-1,:], dV, 0, atol=deltaV_accuracy,
                                err_msg="deltaV difference beyond accuracy limits")
 
     return
@@ -457,6 +492,25 @@ def getStateEffInertialPropName(segment, stateEff, propType):
         return getattr(stateEff, f"nameOfInertial{propType}Property")
     elif segment == 2:
         return getattr(stateEff, f"nameOfInertial{propType}Property2")
+    elif segment == 4:
+        try:
+            propName = stateEff.ModelTag + "Inertial" + propType + "1_4"
+            scObject.dynManager.getPropertyReference(propName)
+        except BasiliskError:
+            return "notHandedCorrectly"
+        return propName
+
+def getModernStateEffInertialPropName(scObject, segment, stateEff, propType):
+    try:
+        if segment == 1:
+            propName = stateEff.ModelTag + "Inertial" + propType + "1"
+            scObject.dynManager.getPropertyReference(propName)
+        elif segment == 4:
+            propName = stateEff.ModelTag + "Inertial" + propType + "1_4"
+            scObject.dynManager.getPropertyReference(propName)
+    except BasiliskError:
+        return "notHandedCorrectly"
+    return propName
 
 def setup_extForceTorque():
     extFT = extForceTorque.ExtForceTorque()
@@ -610,7 +664,7 @@ def setup_spinningBodiesOneDOF():
     # Compute COM offset contribution, to be divided by the hub mass
     mr_ScB_B = -(spinningBody.r_SB_B + np.transpose(spinningBody.dcm_S0B) @ spinningBody.r_ScS_S) * spinningBody.mass
 
-    stateEffProps = stateEfectorProperties()
+    stateEffProps = stateEffectorProperties()
     stateEffProps.totalMass = spinningBody.mass
     stateEffProps.mr_PcB_B = mr_ScB_B
     stateEffProps.r_PB_B = spinningBody.r_SB_B
@@ -629,10 +683,10 @@ def setup_spinningBodiesTwoDOF():
     spinningBody.IS2PntSc2_S2 = [[50.0, 0.0, 0.0], [0.0, 30.0, 0.0], [0.0, 0.0, 40.0]]
     spinningBody.dcm_S10B = [[-1.0, 0.0, 0.0], [0.0, -1.0, 0.0], [0.0, 0.0, 1.0]]
     spinningBody.dcm_S20S1 = [[0.0, -1.0, 0.0], [0.0, .0, -1.0], [1.0, 0.0, 0.0]]
-    spinningBody.r_Sc1S1_S1 = [[2.0], [-0.5], [0.0]]
+    spinningBody.r_Sc1S1_S1 = [[1.0], [-0.5], [0.0]]
     spinningBody.r_Sc2S2_S2 = [[1.0], [0.0], [-1.0]]
-    spinningBody.r_S1B_B = [[-2.0], [0.5], [-1.0]]
-    spinningBody.r_S2S1_S1 = [[0.5], [-1.5], [-0.5]]
+    spinningBody.r_S1B_B = [[-1.0], [0.5], [-1.0]]
+    spinningBody.r_S2S1_S1 = [[0.5], [-0.5], [-0.5]]
     spinningBody.s1Hat_S1 = [[0], [0], [1]]
     spinningBody.s2Hat_S2 = [[0], [-1], [0]]
     spinningBody.theta1DotInit = 1.0 * macros.D2R
@@ -650,7 +704,7 @@ def setup_spinningBodiesTwoDOF():
                    np.transpose(spinningBody.dcm_S20S1) @ spinningBody.r_Sc2S2_S2) )
                    * spinningBody.mass2)
 
-    stateEffProps = stateEfectorProperties()
+    stateEffProps = stateEffectorProperties()
     stateEffProps.totalMass = spinningBody.mass1 + spinningBody.mass2
     stateEffProps.mr_PcB_B = mr_ScB_B
     stateEffProps.r_PB_B = spinningBody.r_S1B_B + np.transpose(spinningBody.dcm_S10B) @ spinningBody.r_S2S1_S1
@@ -658,6 +712,137 @@ def setup_spinningBodiesTwoDOF():
     stateEffProps.inertialPropLogName = "spinningBodyConfigLogOutMsgs"
 
     return(spinningBody, stateEffProps)
+
+def setup_spinningBodiesNDOF():
+    spinningBodyEffector = spinningBodyNDOFStateEffector.SpinningBodyNDOFStateEffector()
+    numberOfSegments = 3 # 3 segments of 2DOF joints is really 6 spinning bodies here
+    massSubPanel = 100.0 / numberOfSegments
+    lengthSubPanel = 18.0 / numberOfSegments
+    widthSubPanel =  3.0
+    thicknessSubPanel = 0.3
+    r_ScB_B = np.array([[0.0], [0.0], [0.0]])
+    dcm_SB = np.array([[1.0, 0.0, 0.0],
+                       [0.0, 1.0, 0.0],
+                       [0.0, 0.0, 1.0]])
+    mr_ScB_B = 0.0
+
+    for idx in range(numberOfSegments):
+        spinningBody = spinningBodyNDOFStateEffector.SpinningBody()
+        spinningBody.setMass(0.0)
+        spinningBody.setISPntSc_S([[0.0, 0.0, 0.0],
+                                   [0.0, 0.0, 0.0],
+                                   [0.0, 0.0, 0.0]])
+        spinningBody.setDCM_S0P([[1.0, 0.0, 0.0],
+                                 [0.0, 1.0, 0.0],
+                                 [0.0, 0.0, 1.0]])
+        spinningBody.setR_ScS_S([[0.0], [lengthSubPanel / 2], [0.0]])
+        if idx == 0:
+            spinningBody.setR_SP_P([[0.0], [3 / 2], [3 / 2 - thicknessSubPanel / 2]])
+        else:
+            spinningBody.setR_SP_P([[0.0], [lengthSubPanel], 0.0])
+        spinningBody.setSHat_S([[1], [0], [0]])
+        spinningBody.setThetaInit(2.0 * macros.D2R)
+        spinningBody.setThetaDotInit(-0.5 * macros.D2R)
+        spinningBody.setK(10)
+        spinningBody.setC(8)
+        spinningBodyEffector.addSpinningBody(spinningBody)
+        r_ScB_B += dcm_SB.transpose() @ spinningBody.getR_SP_P()
+        dcm_SB = rbk.PRV2C(spinningBody.getThetaInit() * np.array(spinningBody.getSHat_S())) @ spinningBody.getDCM_S0P() @ dcm_SB
+
+        spinningBody = spinningBodyNDOFStateEffector.SpinningBody()
+        spinningBody.setMass(massSubPanel)
+        spinningBody.setISPntSc_S([[massSubPanel / 12 * (lengthSubPanel ** 2 + thicknessSubPanel ** 2), 0.0, 0.0],
+                                   [0.0, massSubPanel / 12 * (widthSubPanel ** 2 + thicknessSubPanel ** 2), 0.0],
+                                   [0.0, 0.0, massSubPanel / 12 * (widthSubPanel ** 2 + lengthSubPanel ** 2)]])
+        spinningBody.setDCM_S0P([[1.0, 0.0, 0.0],
+                                 [0.0, 1.0, 0.0],
+                                 [0.0, 0.0, 1.0]])
+        spinningBody.setR_ScS_S([[0.0], [lengthSubPanel / 2], [0.0]])
+        spinningBody.setR_SP_P([[0.0], [0.0], [0.0]])
+        spinningBody.setSHat_S([[0], [1], [0]])
+        spinningBody.setThetaInit(2.0 * macros.D2R)
+        spinningBody.setThetaDotInit(-0.5 * macros.D2R)
+        spinningBody.setK(1)
+        spinningBody.setC(0.8)
+        spinningBodyEffector.addSpinningBody(spinningBody)
+        dcm_SB = rbk.PRV2C(spinningBody.getThetaInit() * np.array(spinningBody.getSHat_S())) @ spinningBody.getDCM_S0P() @ dcm_SB
+
+        # Compute COM offset contribution, to be divided by the hub mass
+        mr_ScB_B -= spinningBody.getMass() * (r_ScB_B + dcm_SB.transpose() @ spinningBody.getR_ScS_S())
+
+    spinningBodyEffector.ModelTag = "spinningBody"
+
+    stateEffProps = stateEffectorProperties()
+    stateEffProps.totalMass = massSubPanel * numberOfSegments
+    stateEffProps.mr_PcB_B = mr_ScB_B
+    stateEffProps.r_PB_B = r_ScB_B - dcm_SB.transpose() @ spinningBody.getR_ScS_S()
+    stateEffProps.r_PcP_P = spinningBody.getR_ScS_S()
+    stateEffProps.inertialPropLogName = "spinningBodyConfigLogOutMsgs"
+
+    return(spinningBodyEffector, stateEffProps)
+
+def setup_hingedRigidBodyStateEffector():
+    hingedBody = hingedRigidBodyStateEffector.HingedRigidBodyStateEffector()
+
+    # Define properties of HRB
+    hingedBody.mass = 50.0
+    hingedBody.IPntS_S = [[50.0, 0.0, 0.0], [0.0, 30.0, 0.0], [0.0, 0.0, 40.0]]
+    hingedBody.d = 1.0
+    hingedBody.k = 100.0
+    hingedBody.c = 50.0
+    hingedBody.dcm_HB = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+    hingedBody.r_HB_B = [[0.5], [-1.5], [-0.5]]
+    hingedBody.thetaInit = 5 * macros.D2R
+    hingedBody.thetaDotInit = -1 * macros.D2R
+    hingedBody.ModelTag = "HingedRigidBody"
+
+    # Compute COM offset contribution, to be divided by the hub mass
+    dcm_SH = rbk.euler2(hingedBody.thetaInit)
+    s1_hat = np.array([[-1.0],[0.0],[0.0]])
+    mr_ScB_B = -(hingedBody.r_HB_B + np.transpose(hingedBody.dcm_HB) @
+                 (np.transpose(dcm_SH) @ (hingedBody.d * s1_hat))) * hingedBody.mass
+
+    stateEffProps = stateEffectorProperties()
+    stateEffProps.totalMass = hingedBody.mass
+    stateEffProps.mr_PcB_B = mr_ScB_B
+    stateEffProps.r_PB_B = hingedBody.r_HB_B
+    stateEffProps.r_PcP_P = hingedBody.d * s1_hat
+    stateEffProps.inertialPropLogName = "hingedRigidBodyConfigLogOutMsg"
+
+    return(hingedBody, stateEffProps)
+
+def setup_translatingBodiesOneDOF():
+    translatingBody = linearTranslationOneDOFStateEffector.LinearTranslationOneDOFStateEffector()
+
+    # Define properties of translating body
+    translatingBody.setMass(20.0)
+    translatingBody.setK(100.0)
+    translatingBody.setC(50.0)
+    translatingBody.setRhoInit(1.0)
+    translatingBody.setRhoDotInit(0.05)
+    translatingBody.setFHat_B([[3.0 / 5.0], [4.0 / 5.0], [0.0]])
+    translatingBody.setR_FcF_F([[-1.0], [1.0], [0.0]])
+    translatingBody.setR_F0B_B([[-1.0], [1.0], [0.0]])
+    translatingBody.setIPntFc_F([[50.0, 0.0, 0.0],
+                                 [0.0, 80.0, 0.0],
+                                 [0.0, 0.0, 60.0]])
+    translatingBody.setDCM_FB([[0.0, -1.0, 0.0],
+                               [0.0, 0.0, -1.0],
+                               [1.0, 0.0, 0.0]])
+    translatingBody.ModelTag = "linearTranslation"
+
+    mr_ScB_B = -(translatingBody.getR_F0B_B() + np.transpose(translatingBody.getDCM_FB()) @
+                 (translatingBody.getR_FcF_F() + translatingBody.getRhoInit() *
+                  np.array(translatingBody.getFHat_B()))) * translatingBody.getMass()
+
+    stateEffProps = stateEffectorProperties()
+    stateEffProps.totalMass = translatingBody.getMass()
+    stateEffProps.mr_PcB_B = mr_ScB_B
+    stateEffProps.r_PB_B = translatingBody.getR_F0B_B()
+    stateEffProps.r_PcP_P = translatingBody.getR_FcF_F()
+    stateEffProps.inertialPropLogName = "translatingBodyConfigLogOutMsg"
+
+    return(translatingBody, stateEffProps)
 
 def setup_linearSpringMassDamper():
     linearSpring = linearSpringMassDamper.LinearSpringMassDamper()
@@ -673,14 +858,14 @@ def setup_linearSpringMassDamper():
     # Compute COM offset contribution, to be divided by the hub mass
     mr_ScB_B = -(linearSpring.r_PB_B + linearSpring.rhoInit * np.array(linearSpring.pHat_B)) * linearSpring.massInit
 
-    stateEffProps = stateEfectorProperties()
+    stateEffProps = stateEffectorProperties()
     stateEffProps.totalMass = linearSpring.massInit
     stateEffProps.mr_PcB_B = mr_ScB_B
     stateEffProps.r_PB_B = linearSpring.r_PB_B
 
     return(linearSpring, stateEffProps)
 
-class stateEfectorProperties:
+class stateEffectorProperties:
     # to be used in joint COM calculation
     totalMass = 0.0 # total mass of the effector (sum of all linkages)
     mr_PcB_B = [[0.0], [0.0], [0.0]] # sum(m_i * r_SiB_B) for i linkages, see rst documentation
@@ -690,4 +875,4 @@ class stateEfectorProperties:
     r_PcP_P = [[0.0], [0.0], [0.0]] # individual COM for linkage that dynEff will be attached to
 
 if __name__ == "__main__":
-    effectorBranchingIntegratedTest(True, "spinningBodiesOneDOF", True, "extForceTorque", True)
+    effectorBranchingIntegratedTest(True, "hingedRigidBodies", True, "extForceTorque", True)
