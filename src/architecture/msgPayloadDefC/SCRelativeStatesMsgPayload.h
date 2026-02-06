@@ -1,7 +1,7 @@
 /*
  ISC License
 
- Copyright (c) 2025, Autonomous Vehicle Systems Lab, University of Colorado at Boulder
+ Copyright (c) 2016, Autonomous Vehicle Systems Lab, University of Colorado at Boulder
 
  Permission to use, copy, modify, and/or distribute this software for any
  purpose with or without fee is hereby granted, provided that the above
@@ -17,21 +17,12 @@
 
  */
 
-%{
-   #include "MJSite.h"
-%}
+#ifndef SC_RELATIVE_STATE_MESSAGE_H
+#define SC_RELATIVE_STATE_MESSAGE_H
 
-%include "MJObject.swg"
-%template_mujoco_object(mjsSite)
+typedef struct {
+    double r_BP_P[3];                 //!< m   Position of body frame B relative to parent frame P, expressed in P
+    double sigma_BP[3];               //!< --  MRPs representing the attitude of B relative to parent frame P
+}SCRelativeStatesMsgPayload;
 
-%ignore MJSite::MJSite;
-%ignore MJSite::setPositionRelativeToBody;
-%ignore MJSite::writeFwdKinematicsMessage;
-
-%include "MJSite.h"
-
-%include "architecture/msgPayloadDefC/SCStatesMsgPayload.h"
-struct SCStatesMsgPayload_C;
-
-%include "architecture/msgPayloadDefC/SCRelativeStatesMsgPayload.h"
-struct SCSRelativeStatesMsgPayload_C;
+#endif

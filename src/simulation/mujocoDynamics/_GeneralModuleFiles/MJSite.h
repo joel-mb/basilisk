@@ -22,6 +22,7 @@
 
 #include "architecture/messaging/messaging.h"
 #include "architecture/msgPayloadDefC/SCStatesMsgPayload.h"
+#include "architecture/msgPayloadDefC/SCRelativeStatesMsgPayload.h"
 #include "architecture/utilities/avsEigenSupport.h"
 #include "MJObject.h"
 
@@ -103,8 +104,13 @@ public:
      */
     void writeFwdKinematicsMessage(mjModel* model, mjData* data, uint64_t CurrentSimNanos);
 
+private:
+    void writeStatesMsgPayload(mjModel* model, mjData* data, uint64_t CurrentSimNanos);
+    void writeRelativeStatesMsgPayload(mjModel* model, mjData* data, uint64_t CurrentSimNanos);
+
 public:
     Message<SCStatesMsgPayload> stateOutMsg; ///< Message to output site frame state.
+    Message<SCRelativeStatesMsgPayload> relativeStateOutMsg; ///< Message to output relative site frame state.
 
 protected:
     MJBody& body; ///< Reference to the body to which the site is attached.
