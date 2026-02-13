@@ -108,7 +108,7 @@ MJSpec::MJSpec(MJScene& scene, std::string xmlString, const std::vector<std::str
 
     // Initial compilation of the model and data
     this->model.reset(mj_compile(this->spec.get(), this->virtualFileSystem.get()));
-    std::cout << mjs_getError(this->spec.get()) << std::endl;
+    // std::cout << mjs_getError(this->spec.get()) << std::endl;
     this->data.reset(mj_makeData(this->model.get()));
 
     {
