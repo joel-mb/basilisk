@@ -281,7 +281,7 @@ public:
      *
      * This method will also mark the kinematics and mujoco model 'const' as stale.
      */
-    void updateMujocoModelFromMassProps();
+    bool updateMujocoModelFromMassProps();
 
     /**
      * @brief Updates the derivative of the mass state with the information

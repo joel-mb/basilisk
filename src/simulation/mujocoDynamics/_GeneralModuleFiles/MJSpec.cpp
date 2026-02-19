@@ -269,7 +269,21 @@ bool MJSpec::recompileIfNeeded()
                  this->virtualFileSystem.get(),
                  this->model.get(),
                  this->data.get());
+    // ---- Minimal stabilization: clamp wheel inertias once after compile
+    {
+        mjModel* m = this->model.get();
+        constexpr double kMinWheelInertia = 1e-5; // if warning persists, try 1e-4
+        for (int bid = 1; bid < m->nbody; ++bid) {
+            const char* bname = mj_id2name(m, mjOBJ_BODY, bid);
+            if (!bname) continue;
+            if (std::strstr(bname, "wheel") == nullptr) continue;
 
+            for (int i = 0; i < 3; ++i) {
+                double& I = m->body_inertia[3 * bid + i];
+                if (!std::isfinite(I) || I < kMinWheelInertia) I = kMinWheelInertia;
+            }
+        }
+    }
     this->shouldRecompile = false;
     configure();
 
