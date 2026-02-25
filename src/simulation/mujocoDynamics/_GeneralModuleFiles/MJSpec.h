@@ -135,15 +135,6 @@ public:
     bool recompileIfNeeded();
 
     /**
-     * @brief Requests a recompilation of the MuJoCo model.
-     * This will cause the model to be recompiled at the next call to `recompileIfNeeded()`.
-     * Note that some actions on the `MJSpec` will automatically call this method, but in some
-     * cases (e.g., when performing multiple actions in a row) it may be desirable
-     * to call this method manually at a later time, which is the purpose of this method.
-     * 
-     **/
-    void requestRecompile() { shouldRecompile = true; }
-    /**
      * @brief Configures all bodies, actuators, and equalities with
      * the current model.
      */

@@ -139,33 +139,20 @@ void MJScene::equationsOfMotion(double t, double timeStep)
     // Copy data from Basilisk state objects to MuJoCo structs
     updateMujocoArraysFromStates();
 
-    bool needRecompile = false;
     for (auto&& body : this->spec.getBodies()) {
-        needRecompile |= body.updateMujocoModelFromMassProps();
+        // The mass of bodies is stored as a state, which may evolve in time.
+        // Mujoco expects mass properties to be stored in mjModel, so we need
+        // to update the mjModel with the mass properties of the bodies.
+        body.updateMujocoModelFromMassProps();
+
         body.writeStateDependentOutputMessages(nanos);
-    }
-
-    if (needRecompile) {
-        // Recompile now (same step), so the model is consistent
-        this->spec.recompileIfNeeded();
-
-        // After recompiling, model/data pointers are updated; refresh locals
-        auto m = this->spec.getMujocoModel();
-        auto d = this->spec.getMujocoData();
-
-        // Re-push Basilisk states into MuJoCo arrays (qpos/qvel/act, etc.)
-        updateMujocoArraysFromStates();
-
-        // Hard-sanitize ctrl after recompile (prevents ctrl garbage)
-        std::fill(d->ctrl, d->ctrl + m->nu, 0.0);
     }
 
     // Mujoco models cache certain computations that depend on values that are
     // supposed to be constant during mujoco simulations (like body mass). However,
     // we need to alter some of them, in which case we need to update the 'constants'.
     if (areMujocoModelConstStale()) {
-        mj_setConst(m, d);
-        mj_forward(m, d);
+        mj_setConst(this->spec.getMujocoModel(), this->spec.getMujocoData());
     }
 
     // Execute the dynamics task!

@@ -255,54 +255,36 @@ void MJBody::registerStates(DynParamRegisterer paramManager)
     this->massState = paramManager.registerState(1, 1, "mass");
 }
 
-bool MJBody::updateMujocoModelFromMassProps()
+void MJBody::updateMujocoModelFromMassProps()
 {
     auto m = spec.getMujocoModel();
-    const int id = this->getId();
 
-    // Optional: skip wheels if you want
-    const char* bname = mj_id2name(m, mjOBJ_BODY, id);
-    if (bname && std::strstr(bname, "wheel") != nullptr) {
-        return false;
-    }
-
+    // TODO: This needs to be handled properly.
+    // This method does not account for the subtree mass (body + all child bodies).
+    // It must be updated accordingly when modifying or updating masses.
     double newMass = this->massState->getState()(0, 0);
-    if (!std::isfinite(newMass) || newMass < 1e-6) newMass = 1e-6;
+    auto diff = abs(m->body_subtreemass[this->getId()] - newMass);
+    if (diff > 10 * std::numeric_limits<double>::epsilon()) {
 
-    // Use current model mass only as reference for "has it changed?"
-    const double oldMass = m->body_mass[id];
-    if (std::abs(newMass - oldMass) <= 1e-12 * std::max(1.0, oldMass)) {
-        return false;
+        // Update the mass in the mjModel AND mjsBody
+        m->body_mass[this->getId()] = newMass;
+        this->mjsObject->mass = newMass;
+
+        // Update the inertia in the mjModel AND mjsBody
+        for (size_t i = 0; i < 3; i++) {
+            m->body_inertia[3 * this->getId() + i] *= newMass / m->body_mass[this->getId()];
+            this->mjsObject->inertia[i] = m->body_inertia[3 * this->getId() + i];
+        }
+
+        this->getSpec().getScene().markMujocoModelConstAsStale();
+        this->getSpec().getScene().markKinematicsAsStale();
     }
-
-    // Scale inertia consistently (use model inertia as baseline; OK for minimal change)
-    const double scale = newMass / std::max(oldMass, 1e-6);
-
-    // Write into mjSpec object (mjsBody), NOT mjModel
-    this->mjsObject->mass = newMass;
-
-    constexpr double kMinInertia = 1e-7;
-    for (int i = 0; i < 3; ++i) {
-        double I = this->mjsObject->inertia[i] * scale;
-        if (!std::isfinite(I) || I < kMinInertia) I = kMinInertia;
-        this->mjsObject->inertia[i] = I;
-    }
-
-    // Tell the scene/spec it must recompile before continuing
-    this->getSpec().requestRecompile();   // you may need to add this helper; see below
-    return true;
 }
-
 
 void MJBody::updateMassPropsDerivative()
 {
     if (this->derivativeMassPropertiesInMsg.isLinked()) {
         auto deriv = this->derivativeMassPropertiesInMsg();
-        double dm_sc = deriv.massSC;
-        auto msstate = this->massState->getState()(0, 0);
-        constexpr double kMinMass = 1e-6;
-        if (msstate <= kMinMass && dm_sc < 0.0) dm_sc = 0.0;
-        
         this->massState->setDerivative(Eigen::Matrix<double, 1, 1>{deriv.massSC});
     }
 }
